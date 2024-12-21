@@ -1,9 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -11,4 +5,52 @@ generator client {
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String    @id @default(uuid()) // User ID
+  email     String    @unique
+  password  String
+  name      String
+  routines  Routine[] // Relation to routines created by the user
+  workouts  Workout[] // Relation to workouts created by the user
+  histories History[] // Relation to workout history of the user
+}
+
+model Exercise {
+  id          String    @id @default(uuid()) // Exercise ID
+  name        String    @unique // Name of the exercise, e.g., "Squats", "Jump Rope"
+  description String?
+  workouts    Workout[] // Relation to workouts using this exercise
+}
+
+model Workout {
+  id          String    @id @default(uuid()) // Workout ID
+  exerciseID  String    // The associated exercise ID
+  userID      String    // The user who performed the workout
+  routineID   String?   // Optional: Part of a routine
+  time        Int       // Time spent on the workout in seconds
+  exercise    Exercise  @relation(fields: [exerciseID], references: [id]) // Foreign key
+  user        User      @relation(fields: [userID], references: [id]) // Foreign key
+  routine     Routine?  @relation(fields: [routineID], references: [id]) // Foreign key
+}
+
+model Routine {
+  id        String    @id @default(uuid()) // Routine ID
+  name      String
+  userID    String    // The user who created the routine
+  user      User      @relation(fields: [userID], references: [id]) // Foreign key
+  workouts  Workout[] // Relation to workouts in this routine
+  histories History[] // Relation to histories of this routine
+}
+
+model History {
+  id               String     @id @default(uuid()) // History ID
+  userID           String     // The user attempting the routine
+  routineID        String     // The routine attempted
+  completedWorkouts Int        // Number of workouts completed in the routine
+  totalWorkouts     Int        // Total number of workouts in the routine
+  attemptedAt       DateTime   @default(now()) // Timestamp of the attempt
+  user             User       @relation(fields: [userID], references: [id]) // Foreign key
+  routine          Routine    @relation(fields: [routineID], references: [id]) // Foreign key
 }
