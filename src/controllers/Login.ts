@@ -4,7 +4,7 @@ import { PrismaClient } from "@prisma/client";
 import { Request, Response, NextFunction } from "express";
 
 const prisma = new PrismaClient();
-const SECRET_KEY = process.env.SECRET_KEY;
+const SECRET_KEY = process.env.SECRET_KEY || "";
 
 export const signupController = async (
 	req: Request,
@@ -37,9 +37,24 @@ export const signupController = async (
 			},
 		});
 
-		res
-			.status(201)
-			.json({ message: "User created successfully", user: newUser });
+		// Generate JWT
+		const token = jwt.sign(
+			{ id: newUser.id, email: newUser.email },
+			SECRET_KEY,
+			{
+				expiresIn: "1h",
+			}
+		);
+
+		res.status(201).json({
+			message: "User created successfully",
+			user: {
+				id: newUser.id,
+				username: newUser.username,
+				email: newUser.email,
+			},
+			token,
+		});
 	} catch (error) {
 		next(error);
 	}
@@ -78,6 +93,41 @@ export const loginController = async (
 		});
 
 		res.status(200).json({ message: "Login successful", token });
+	} catch (error) {
+		next(error);
+	}
+};
+
+export const getProfileController = async (
+	req: Request,
+	res: Response,
+	next: NextFunction
+): Promise<void> => {
+	try {
+		const userId = req.user?.id; // Assuming user ID is stored in req.user via middleware
+
+		if (!userId) {
+			res.status(401).json({ message: "Unauthorized" });
+			return;
+		}
+
+		// Fetch user profile
+		const user = await prisma.user.findUnique({
+			where: { id: userId },
+			select: {
+				id: true,
+				username: true,
+				email: true,
+				createdAt: true,
+			},
+		});
+
+		if (!user) {
+			res.status(404).json({ message: "User not found" });
+			return;
+		}
+
+		res.status(200).json({ user });
 	} catch (error) {
 		next(error);
 	}
