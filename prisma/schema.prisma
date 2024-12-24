@@ -1,3 +1,5 @@
+// Prisma schema for timer application
+
 generator client {
   provider = "prisma-client-js"
 }
@@ -7,50 +9,109 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// User model
 model User {
-  id        String    @id @default(uuid()) // User ID
-  email     String    @unique
-  password  String
-  name      String
-  routines  Routine[] // Relation to routines created by the user
-  workouts  Workout[] // Relation to workouts created by the user
-  histories History[] // Relation to workout history of the user
+  id            String     @id @default(uuid())
+  email         String     @unique
+  passwordHash  String
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+  workouts      Workout[]
+  stats         UserStat[]
 }
 
-model Exercise {
-  id          String    @id @default(uuid()) // Exercise ID
-  name        String    @unique // Name of the exercise, e.g., "Squats", "Jump Rope"
-  description String?
-  workouts    Workout[] // Relation to workouts using this exercise
-}
-
+// Workout model
 model Workout {
-  id          String    @id @default(uuid()) // Workout ID
-  exerciseID  String    // The associated exercise ID
-  userID      String    // The user who performed the workout
-  routineID   String?   // Optional: Part of a routine
-  time        Int       // Time spent on the workout in seconds
-  exercise    Exercise  @relation(fields: [exerciseID], references: [id]) // Foreign key
-  user        User      @relation(fields: [userID], references: [id]) // Foreign key
-  routine     Routine?  @relation(fields: [routineID], references: [id]) // Foreign key
+  id          String      @id @default(uuid())
+  userId      String
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name        String
+  description String?
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  segments    Segment[]
+  stats       UserStat[]
 }
 
-model Routine {
-  id        String    @id @default(uuid()) // Routine ID
-  name      String
-  userID    String    // The user who created the routine
-  user      User      @relation(fields: [userID], references: [id]) // Foreign key
-  workouts  Workout[] // Relation to workouts in this routine
-  histories History[] // Relation to histories of this routine
+// Segment model
+model Segment {
+  id               String            @id @default(uuid())
+  workoutId        String
+  workout          Workout           @relation(fields: [workoutId], references: [id], onDelete: Cascade)
+  name             String
+  sequenceOrder    Int
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  segmentExercises SegmentExercise[]
+
+  @@unique([workoutId, sequenceOrder])
 }
 
-model History {
-  id               String     @id @default(uuid()) // History ID
-  userID           String     // The user attempting the routine
-  routineID        String     // The routine attempted
-  completedWorkouts Int        // Number of workouts completed in the routine
-  totalWorkouts     Int        // Total number of workouts in the routine
-  attemptedAt       DateTime   @default(now()) // Timestamp of the attempt
-  user             User       @relation(fields: [userID], references: [id]) // Foreign key
-  routine          Routine    @relation(fields: [routineID], references: [id]) // Foreign key
+// Exercise model
+model Exercise {
+  id               String            @id @default(uuid())
+  name             String
+  description      String?
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  segmentExercises SegmentExercise[]
+}
+
+// SegmentExercise (Join Table)
+model SegmentExercise {
+  id            String    @id @default(uuid())
+  segmentId     String
+  exerciseId    String
+  timerId       String?
+  sequenceOrder Int
+  segment       Segment   @relation(fields: [segmentId], references: [id], onDelete: Cascade)
+  exercise      Exercise  @relation(fields: [exerciseId], references: [id], onDelete: Cascade)
+  timer         Timer?    @relation(fields: [timerId], references: [id], onDelete: SetNull)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@unique([segmentId, sequenceOrder])
+  @@unique([segmentId, exerciseId])
+}
+
+// Timer model
+model Timer {
+  id               String            @id @default(uuid())
+  type             TimerType
+  duration         Int
+  interval         Int?
+  repeats          Int?
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  segmentExercises SegmentExercise[]
+}
+
+// TimerType Enum
+enum TimerType {
+  COUNTDOWN
+  INTERVAL
+  REPEATING
+  CUMULATIVE
+  ROUND
+  STOPWATCH
+  CUSTOM
+  PYRAMID
+  EMOM
+  AMRAP
+  REST
+  PROGRESSIVE
+  BEEP
+}
+
+// User statistics
+model UserStat {
+  id          String    @id @default(uuid())
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  workoutId   String?
+  workout     Workout?  @relation(fields: [workoutId], references: [id], onDelete: SetNull)
+  completedAt DateTime
+  duration    Int
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 }
