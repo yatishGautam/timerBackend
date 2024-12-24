@@ -10,7 +10,7 @@ import { authMiddleware } from "../middlewares/auth";
 const router = Router();
 
 // Create a new workout
-router.post("/", authMiddleware, createWorkoutController);
+router.post("/create_workout", authMiddleware, createWorkoutController);
 
 // Get all workouts for the authenticated user
 router.get("/", authMiddleware, getAllWorkoutsController);
