@@ -1,10 +1,20 @@
 import { Router } from "express";
 import { authMiddleware } from "../middlewares/auth";
+import {
+	createExerciseController,
+	getAllExercisesController,
+	deleteExerciseController,
+} from "../controllers/Exercise";
 
 const router = Router();
 
-router.post("/", authMiddleware);
-router.post("/create", authMiddleware);
-router.delete("/:id", authMiddleware);
+// Get all exercises
+router.post("/", authMiddleware, getAllExercisesController);
+
+// Create a new exercise
+router.post("/create", authMiddleware, createExerciseController);
+
+// Delete an exercise by ID
+router.delete("/:id", authMiddleware, deleteExerciseController);
 
 export default router;

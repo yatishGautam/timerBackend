@@ -18,13 +18,14 @@ generator erd {
 // User model
 model User {
   id            String     @id @default(uuid())
-  username      String?     @unique
+  username      String?    @unique
   email         String     @unique
   passwordHash  String
   createdAt     DateTime   @default(now())
   updatedAt     DateTime   @updatedAt
   workouts      Workout[]
   stats         UserStat[]
+  exercises     Exercise[]
 }
 
 // Workout model
@@ -61,26 +62,26 @@ model Exercise {
   description      String?
   createdAt        DateTime          @default(now())
   updatedAt        DateTime          @updatedAt
-  segmentExercises SegmentExercise[]
+  segmentExercises SegmentExercise[] 
+  userId           String
+  user             User              @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
-// SegmentExercise (Join Table)
+// SegmentExercise model
 model SegmentExercise {
   id            String    @id @default(uuid())
   segmentId     String
-  exerciseId    String
+  exerciseId    String?    
   timerId       String?
   sequenceOrder Int
   segment       Segment   @relation(fields: [segmentId], references: [id], onDelete: Cascade)
-  exercise      Exercise  @relation(fields: [exerciseId], references: [id], onDelete: Cascade)
+  exercise      Exercise? @relation(fields: [exerciseId], references: [id], onDelete: SetNull)
   timer         Timer?    @relation(fields: [timerId], references: [id], onDelete: SetNull)
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
-  @@unique([segmentId, sequenceOrder])
-  @@unique([segmentId, exerciseId])
+  @@unique([segmentId, sequenceOrder])  // Keep this to maintain order
 }
-
 // Timer model
 model Timer {
   id               String            @id @default(uuid())
